@@ -384,7 +384,7 @@ Eliminados:                              22.67%
      .compile.toList
    ```
 
-## 🔍 Análisis Avanzado Crew
+##  Análisis Avanzado Crew
 
 El análisis de crew proporciona insights valiosos:
 
