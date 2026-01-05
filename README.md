@@ -297,7 +297,7 @@ sbt "runMain LimpiezaConCirce"
 sbt "runMain columnasNumericas"
 ```
 
-## Resultados Esperados
+## Resultados Esperados (Ejemplos)
 
 ### 1. Análisis de Géneros
 
