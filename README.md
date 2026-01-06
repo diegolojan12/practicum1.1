@@ -145,7 +145,7 @@ sbt "runMain LimpiezaDatos"
 sbt "runMain AnalisisTexto"
 ```
 
-## 📊 Estadísticas Calculadas
+## Estadísticas Calculadas
 
 Para cada variable numérica se calcula:
 - **Mínimo y máximo**
@@ -177,9 +177,9 @@ Para cada variable numérica se calcula:
 
 ---
 
-**Autor:** Sistema de Análisis de Datos  
-**Última actualización:** 2025-12-04
-##  Descripción del Proyecto
+#Utilizando Circe
+
+##  Descripción del Proyecto de limpieza con Circe
 
 Este proyecto realiza un análisis completo de un dataset de películas, implementando limpieza de datos y procesamiento de columnas JSON usando la librería **Circe** en Scala. El proyecto demuestra el manejo avanzado de datos estructurados y semi-estructurados.
 
