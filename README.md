@@ -177,7 +177,7 @@ Para cada variable numérica se calcula:
 
 ---
 
-#Utilizando Circe
+# Utilizando Circe
 
 ##  Descripción del Proyecto de limpieza con Circe
 
