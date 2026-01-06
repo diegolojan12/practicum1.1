@@ -1,5 +1,184 @@
-# Análisis de Películas con Circe y Scala
+# Análisis de Dataset de Películas en Scala
 
+Este proyecto implementa un pipeline completo de análisis de datos para un dataset de películas utilizando Scala, Cats Effect y FS2. El sistema procesa archivos CSV y realiza análisis estadísticos, limpieza de datos y análisis de texto.
+
+##  Estructura del Proyecto
+
+El proyecto consta de tres módulos principales:
+
+### 1. **columnasNumericas.scala** - Análisis Estadístico Básico
+Calcula métricas estadísticas para las columnas numéricas del dataset.
+
+**Características:**
+- Lectura de archivos CSV con FS2
+- Cálculo de estadísticas descriptivas: promedio, suma total y desviación estándar
+- Análisis de las siguientes variables:
+  - Budget (presupuesto)
+  - Revenue (ingresos)
+  - Popularity (popularidad)
+  - Runtime (duración)
+  - Vote Average (promedio de votos)
+  - Vote Count (cantidad de votos)
+
+**Salida:**
+```
+==================================================================================
+              INFORME ACTUALIZADO DE MÉTRICAS
+==================================================================================
+  > Budget       | Promedio:   XX.XX | Suma:      XX.XX | Desv. Est:   XX.XX
+  > Revenue      | Promedio:   XX.XX | Suma:      XX.XX | Desv. Est:   XX.XX
+  ...
+```
+
+### 2. **limpieza.scala** - Limpieza y Transformación de Datos
+Implementa un pipeline completo de limpieza y detección de outliers.
+
+**Componentes principales:**
+
+#### Transformación de Datos
+- **Parsing de fechas:** Extrae año, mes y día de `release_date`
+- **Cálculo de ROI:** Calcula el retorno de inversión: `(revenue - budget) / budget`
+- Genera un modelo enriquecido con 28 atributos (desde 24 originales)
+
+#### Análisis de Calidad
+Evalúa la calidad de los datos identificando:
+- Valores nulos o infinitos
+- Valores en cero
+- Valores negativos
+- Campos de texto vacíos
+- Porcentaje de registros válidos
+
+#### Detección de Outliers
+Implementa dos métodos estadísticos:
+
+1. **Método IQR (Interquartile Range):**
+   - Calcula Q1 (percentil 25) y Q3 (percentil 75)
+   - Define límites: `[Q1 - 1.5*IQR, Q3 + 1.5*IQR]`
+   - Identifica outliers inferiores y superiores
+
+2. **Método Z-Score:**
+   - Detecta valores con `|z| > 3` (más de 3 desviaciones estándar)
+   - Útil para distribuciones normales
+
+#### Pipeline de Limpieza (3 Etapas)
+
+**Etapa 1: Eliminación de valores nulos**
+- Remueve registros con valores cero o negativos en campos críticos
+- Valida que campos de texto no estén vacíos
+
+**Etapa 2: Validación de rangos lógicos**
+- Años entre 1888 y 2025
+- Meses entre 1 y 12
+- Días entre 1 y 31
+- Runtime menor a 500 minutos
+- Vote average entre 0 y 10
+- ROI mayor o igual a -100%
+
+**Etapa 3: Filtrado de outliers**
+- **Modo estricto:** Elimina cualquier registro con outliers
+- **Modo flexible:** Permite hasta 1 outlier por registro
+
+**Salida:**
+```
+==================================================================================
+              REPORTE DE LIMPIEZA DE DATOS - DATASET DE PELÍCULAS
+==================================================================================
+
+1. ANÁLISIS DE CALIDAD DE DATOS
+2. DETECCIÓN DE VALORES ATÍPICOS (OUTLIERS)
+3. PROCESO DE LIMPIEZA POR ETAPAS
+4. ESTADÍSTICAS DESCRIPTIVAS (DATOS LIMPIOS)
+```
+
+### 3. **AnalisisTexto.scala** - Análisis de Frecuencia de Texto
+Analiza la distribución de valores en columnas categóricas.
+
+**Características:**
+- Análisis de frecuencia para columnas de texto
+- Top 5 valores más frecuentes por columna
+- Columnas analizadas:
+  - `original_language` (idioma original)
+  - `status` (estado de la película)
+  - `belongs_to_collection` (pertenencia a colección)
+
+**Salida:**
+```
+==================================================================================
+           ANÁLISIS DE DISTRIBUCIÓN DE FRECUENCIA (TEXTO)
+==================================================================================
+
+--- Top Frecuencias: Idioma Original ---
+  1. en                          | Apariciones: XXXX
+  2. fr                          | Apariciones: XXX
+  ...
+```
+
+## Tecnologías Utilizadas
+
+- **Scala 3:** Lenguaje de programación funcional
+- **Cats Effect:** Manejo de efectos y computación asíncrona
+- **FS2:** Streaming funcional y procesamiento de datos
+- **fs2-data-csv:** Parsing de archivos CSV
+
+## Estructura de Datos
+
+### Modelo Original (MovieRaw - 24 columnas)
+Contiene todos los campos del CSV original.
+
+### Modelo Procesado (Movie - 28 columnas)
+Incluye campos calculados adicionales:
+- `release_year`: Año de lanzamiento
+- `release_month`: Mes de lanzamiento
+- `release_day`: Día de lanzamiento
+- `return`: ROI calculado
+
+## Ejecución
+
+```bash
+# Ejecutar análisis estadístico
+sbt "runMain columnasNumericas"
+
+# Ejecutar limpieza de datos
+sbt "runMain LimpiezaDatos"
+
+# Ejecutar análisis de texto
+sbt "runMain AnalisisTexto"
+```
+
+## 📊 Estadísticas Calculadas
+
+Para cada variable numérica se calcula:
+- **Mínimo y máximo**
+- **Media y mediana**
+- **Desviación estándar**
+- **Cuartiles (Q1, Q3)**
+- **Suma total**
+
+## Casos de Uso
+
+1. **Análisis exploratorio inicial:** Usar `columnasNumericas.scala`
+2. **Preparación de datos para ML:** Usar `limpieza.scala`
+3. **Análisis categórico:** Usar `AnalisisTexto.scala`
+
+## Notas
+
+- El delimitador del CSV es punto y coma (`;`)
+- Ruta del archivo: `src/main/resources/data/pi-movies-complete-2025-12-04.csv`
+- El modo flexible de limpieza es recomendado para preservar más datos
+- Todos los módulos usan programación funcional pura con IO
+
+## Validaciones Implementadas
+
+- Detección de valores faltantes
+- Validación de rangos numéricos
+- Detección estadística de outliers
+- Validación de fechas
+- Verificación de campos de texto vacíos
+
+---
+
+**Autor:** Sistema de Análisis de Datos  
+**Última actualización:** 2025-12-04
 ##  Descripción del Proyecto
 
 Este proyecto realiza un análisis completo de un dataset de películas, implementando limpieza de datos y procesamiento de columnas JSON usando la librería **Circe** en Scala. El proyecto demuestra el manejo avanzado de datos estructurados y semi-estructurados.
