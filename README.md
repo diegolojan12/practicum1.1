@@ -175,9 +175,106 @@ Para cada variable numérica se calcula:
 - Validación de fechas
 - Verificación de campos de texto vacíos
 
----
 
-# Utilizando Circe
+
+
+---
+# Proyecto: Limpieza de Datos de Crew con Circe
+
+## Descripción
+Este programa Scala procesa y limpia datos del equipo de producción (crew) de películas desde un archivo CSV, utilizando la biblioteca Circe para el manejo de JSON. El objetivo es extraer, normalizar y analizar información sobre miembros del equipo de producción cinematográfica.
+
+## Características Principales
+
+### 1. **Lectura y Procesamiento de CSV**
+- Lee un archivo CSV con codificación UTF-8
+- Maneja campos entrecomillados correctamente
+- Extrae específicamente la columna "crew" que contiene datos JSON
+
+### 2. **Limpieza de Datos JSON**
+- Convierte JSON con formato Python (comillas simples, `None`, `True`, `False`) a formato JSON estándar
+- Normaliza texto eliminando espacios extra
+- Convierte cadenas vacías a valores `null` (representados como `None` en Scala)
+
+### 3. **Estructura de Datos**
+```scala
+case class Crew(
+  name: Option[String],
+  department: Option[String],
+  job: Option[String],
+  profile_path: Option[String]
+)
+```
+- Todos los campos son opcionales para manejar datos faltantes
+- Elimina duplicados exactos después de la normalización
+
+### 4. **Análisis y Estadísticas**
+- Cuenta campos con valores `null` por categoría
+- Muestra los primeros registros procesados
+- Genera estadísticas por departamento (Top 10)
+- Genera estadísticas por trabajo (Top 10)
+
+### 5. **Salida en Formato JSON**
+- Utiliza Circe para serializar los datos limpios a JSON
+- Muestra una muestra de registros en formato JSON
+- Preserva los valores `null` donde corresponda
+
+## Funciones Clave
+
+### `cleanCrewJson(crewJson: String): String`
+- Reemplaza comillas simples por dobles
+- Convierte valores Python (`None`, `True`, `False`) a JSON estándar
+- Elimina barras invertidas innecesarias
+
+### `normalizarTexto(texto: String): Option[String]`
+- Elimina espacios en blanco al inicio y final
+- Reduce múltiples espacios a uno solo
+- Retorna `None` para cadenas vacías
+
+### `limpiarCrew(crews: List[Crew]): List[Crew]`
+- Aplica normalización a todos los campos
+- Elimina duplicados exactos
+
+### `parseCSVLine(line: String): Array[String]`
+- Parsea líneas CSV respetando campos entrecomillados
+- Usa punto y coma como separador
+
+## Salida del Programa
+El programa genera un informe completo que incluye:
+
+1. **Resumen de procesamiento**: Total de registros procesados
+2. **Campos con valores null**: Conteo por cada campo
+3. **Muestra de registros**: Primeros 5 registros normalizados
+4. **Estadísticas por departamento**: Top 10 departamentos más comunes
+5. **Estadísticas por trabajo**: Top 10 trabajos más comunes
+6. **JSON limpio**: Muestra de 3 registros en formato JSON
+
+## Requisitos
+- Scala 2.12+
+- Biblioteca Circe (`io.circe`)
+- Archivo CSV con columna "crew" que contenga datos JSON
+
+## Uso
+1. Colocar el archivo CSV en `src/main/resources/data/`
+2. Asegurar que el CSV tenga una columna llamada "crew"
+3. Ejecutar el objeto `LeerCrewCSV`
+
+## Ejemplo de Datos de Entrada
+La columna "crew" debe contener datos en formato similar a JSON:
+```json
+[
+  {"name": "John Doe", "department": "Production", "job": "Producer", "profile_path": "/path.jpg"},
+  {"name": "Jane Smith", "department": "Directing", "job": "Director", "profile_path": null}
+]
+```
+
+## Notas
+- El programa maneja datos faltantes convirtiéndolos a `null` en JSON
+- Preserva la estructura original mientras normaliza el contenido
+- Es robusto ante formatos JSON no estándar (comillas simples, valores Python)
+
+
+# Utilizando Circe Todos los datos
 
 ##  Descripción del Proyecto de limpieza con Circe
 
