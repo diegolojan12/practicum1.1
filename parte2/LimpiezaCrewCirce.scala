@@ -5,9 +5,12 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 
 case class Crew(
-                 name: Option[String],
+                 credit_id: Option[String],
                  department: Option[String],
+                 gender: Option[Int],
+                 id: Option[Int],
                  job: Option[String],
+                 name: Option[String],
                  profile_path: Option[String]
                )
 
@@ -42,16 +45,16 @@ object LeerCrewCSV extends App {
     if (limpio.isEmpty) None else Some(limpio)
   }
 
-  // Función para convertir campos vacíos a None (null en JSON)
   def limpiarCrew(crews: List[Crew]): List[Crew] = {
     crews
       .map(c => c.copy(
+        credit_id = c.credit_id.flatMap(n => normalizarTexto(n)),
         name = c.name.flatMap(n => normalizarTexto(n)),
         department = c.department.flatMap(d => normalizarTexto(d)),
         job = c.job.flatMap(j => normalizarTexto(j)),
         profile_path = c.profile_path.flatMap(p => normalizarTexto(p))
       ))
-      .distinct // Eliminar solo duplicados exactos
+      .distinct
   }
 
   def parseCSVLine(line: String): Array[String] = {
@@ -87,25 +90,27 @@ object LeerCrewCSV extends App {
           decode[List[Crew]](jsonLimpio) match {
             case Right(crews) => crews
             case Left(error) =>
-              List.empty[Crew]  // Cambiado de None a List.empty
+              List.empty[Crew]
           }
         } catch {
-          case e: Exception => List.empty[Crew]  // Cambiado de None a List.empty
+          case e: Exception => List.empty[Crew]
         }
       } else {
-        List.empty[Crew]  // Cambiado de None a List.empty
+        List.empty[Crew]
       }
     } else {
-      List.empty[Crew]  // Cambiado de None a List.empty
+      List.empty[Crew]
     }
   }
 
-  // Limpiar los datos (sin eliminar, solo normalizar)
   val crewLimpio = limpiarCrew(listaCrew)
 
   // Contar campos null
+  val creditIdsNull = crewLimpio.count(_.credit_id.isEmpty)
   val nombresNull = crewLimpio.count(_.name.isEmpty)
   val deptosNull = crewLimpio.count(_.department.isEmpty)
+  val gendersNull = crewLimpio.count(_.gender.isEmpty)
+  val idsNull = crewLimpio.count(_.id.isEmpty)
   val jobsNull = crewLimpio.count(_.job.isEmpty)
   val profilesNull = crewLimpio.count(_.profile_path.isEmpty)
 
@@ -113,9 +118,12 @@ object LeerCrewCSV extends App {
   println("RESUMEN DE PROCESAMIENTO CON CIRCE")
   println("=" * 60)
   println(s"Total de registros Crew procesados: ${crewLimpio.size}")
-  println(s"\n Campos con valores null:")
+  println(s"\nCampos con valores null:")
+  println(s"  - Credit IDs null: $creditIdsNull")
   println(s"  - Nombres null: $nombresNull")
   println(s"  - Departamentos null: $deptosNull")
+  println(s"  - Gender null: $gendersNull")
+  println(s"  - IDs null: $idsNull")
   println(s"  - Jobs null: $jobsNull")
   println(s"  - Profile paths null: $profilesNull")
 
@@ -124,18 +132,41 @@ object LeerCrewCSV extends App {
   println("=" * 60)
   crewLimpio.take(5).foreach { crew =>
     println("\nMiembro del equipo:")
+    println(s"  Credit ID: ${crew.credit_id.getOrElse("null")}")
     println(s"  Nombre: ${crew.name.getOrElse("null")}")
     println(s"  Departamento: ${crew.department.getOrElse("null")}")
+    println(s"  Gender: ${crew.gender.map(_.toString).getOrElse("null")}")
+    println(s"  ID: ${crew.id.map(_.toString).getOrElse("null")}")
     println(s"  Trabajo: ${crew.job.getOrElse("null")}")
     println(s"  Perfil: ${crew.profile_path.getOrElse("null")}")
   }
 
-  // Estadísticas por departamento (excluyendo nulls para las estadísticas)
+  // Estadísticas por género
+  println("\n" + "=" * 60)
+  println("DISTRIBUCIÓN POR GÉNERO")
+  println("=" * 60)
+  crewLimpio
+    .filter(_.gender.isDefined)
+    .groupBy(_.gender.get)
+    .map { case (gender, list) => (gender, list.size) }
+    .toSeq
+    .sortBy(_._1)
+    .foreach { case (gender, count) =>
+      val label = gender match {
+        case 0 => "No especificado"
+        case 1 => "Femenino"
+        case 2 => "Masculino"
+        case _ => s"Otro ($gender)"
+      }
+      println(f"  $label%-20s: $count%,6d registros")
+    }
+
+  // Estadísticas por departamento
   println("\n" + "=" * 60)
   println("ESTADÍSTICAS POR DEPARTAMENTO (TOP 10)")
   println("=" * 60)
   crewLimpio
-    .filter(_.department.isDefined) // Solo los que tienen departamento
+    .filter(_.department.isDefined)
     .groupBy(_.department.get)
     .map { case (dept, list) => (dept, list.size) }
     .toSeq
@@ -145,12 +176,12 @@ object LeerCrewCSV extends App {
       println(f"  $dept%-30s: $count%,6d registros")
     }
 
-  // Estadísticas por trabajo (excluyendo nulls)
+  // Estadísticas por trabajo
   println("\n" + "=" * 60)
   println("TRABAJOS MÁS COMUNES (TOP 10)")
   println("=" * 60)
   crewLimpio
-    .filter(_.job.isDefined) // Solo los que tienen trabajo
+    .filter(_.job.isDefined)
     .groupBy(_.job.get)
     .map { case (job, list) => (job, list.size) }
     .toSeq
@@ -160,22 +191,25 @@ object LeerCrewCSV extends App {
       println(f"  $job%-30s: $count%,6d registros")
     }
 
-  // Exportar JSON limpio usando Circe (mostrará null donde corresponda)
+  // Exportar JSON limpio usando Circe
   println("\n" + "=" * 60)
   println("JSON LIMPIO CON NULLS (Muestra de 3 registros)")
   println("=" * 60)
   val muestra = crewLimpio.take(3)
   println(muestra.asJson.spaces2)
 
-  // Ejemplo con registro que tiene nulls
-  println("\n--- Ejemplo de registro con campos null ---")
-  val ejemploConNull = Crew(
-    name = Some("John Doe"),
-    department = None,
-    job = Some("Assistant"),
+  // Ejemplo con registro completo
+  println("\n--- Ejemplo de registro completo ---")
+  val ejemploCompleto = Crew(
+    credit_id = Some("53f5e242c3a36833f7003a15"),
+    department = Some("Directing"),
+    gender = Some(0),
+    id = Some(40016),
+    job = Some("Director"),
+    name = Some("Angelina Maccarone"),
     profile_path = None
   )
-  println(ejemploConNull.asJson.spaces2)
+  println(ejemploCompleto.asJson.spaces2)
 
   println("\n" + "=" * 60)
   println("PROCESAMIENTO COMPLETADO ✓")
