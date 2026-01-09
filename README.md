@@ -179,100 +179,139 @@ Para cada variable numérica se calcula:
 
 
 ---
-# Proyecto: Limpieza de Datos de Crew con Circe
+# Crew Reader CSV - Procesador de Datos de Películas con CIRCE
 
 ## Descripción
-Este programa Scala procesa y limpia datos del equipo de producción (crew) de películas desde un archivo CSV, utilizando la biblioteca Circe para el manejo de JSON. El objetivo es extraer, normalizar y analizar información sobre miembros del equipo de producción cinematográfica.
 
-## Características Principales
+Este proyecto en Scala procesa archivos CSV que contienen información sobre el equipo técnico (crew) de películas. Lee datos almacenados en formato JSON dentro de una columna del CSV, los parsea, limpia y genera estadísticas detalladas sobre el equipo de producción.
 
-### 1. **Lectura y Procesamiento de CSV**
-- Lee un archivo CSV con codificación UTF-8
-- Maneja campos entrecomillados correctamente
-- Extrae específicamente la columna "crew" que contiene datos JSON
+## Tecnologías Utilizadas
 
-### 2. **Limpieza de Datos JSON**
-- Convierte JSON con formato Python (comillas simples, `None`, `True`, `False`) a formato JSON estándar
-- Normaliza texto eliminando espacios extra
-- Convierte cadenas vacías a valores `null` (representados como `None` en Scala)
+- **Scala**: Lenguaje de programación principal
+- **Circe**: Librería para parseo y manipulación de JSON
+- **scala.io.Source**: Para lectura de archivos
 
-### 3. **Estructura de Datos**
+## Estructura de Datos
+
+### Case Class `Crew`
+
+Representa a un miembro del equipo técnico con los siguientes campos:
+
 ```scala
 case class Crew(
-  name: Option[String],
-  department: Option[String],
-  job: Option[String],
-  profile_path: Option[String]
+  credit_id: Option[String],      // ID único del crédito
+  department: Option[String],      // Departamento (ej: "Directing", "Camera")
+  gender: Option[Int],             // Género (0: No especificado, 1: Femenino, 2: Masculino)
+  id: Option[Int],                 // ID del miembro del equipo
+  job: Option[String],             // Puesto de trabajo específico
+  name: Option[String],            // Nombre completo
+  profile_path: Option[String]     // Ruta al perfil (puede ser null)
 )
 ```
-- Todos los campos son opcionales para manejar datos faltantes
-- Elimina duplicados exactos después de la normalización
 
-### 4. **Análisis y Estadísticas**
-- Cuenta campos con valores `null` por categoría
-- Muestra los primeros registros procesados
-- Genera estadísticas por departamento (Top 10)
-- Genera estadísticas por trabajo (Top 10)
+## Funcionalidades Principales
 
-### 5. **Salida en Formato JSON**
-- Utiliza Circe para serializar los datos limpios a JSON
-- Muestra una muestra de registros en formato JSON
-- Preserva los valores `null` donde corresponda
+### 1. Lectura y Parseo del CSV
 
-## Funciones Clave
+El programa lee el archivo CSV ubicado en `src/main/resources/data/pi-movies-complete-2026-01-08 (1).csv` y:
+- Identifica la columna "crew"
+- Parsea líneas CSV respetando campos entre comillas que contienen el separador (`;`)
+- Maneja correctamente campos con JSON embebido
 
-### `cleanCrewJson(crewJson: String): String`
+### 2. Limpieza de Datos JSON
+
+La función `cleanCrewJson` normaliza el formato JSON:
 - Reemplaza comillas simples por dobles
-- Convierte valores Python (`None`, `True`, `False`) a JSON estándar
-- Elimina barras invertidas innecesarias
+- Convierte valores Python (`None`, `True`, `False`) a JSON válido
+- Elimina caracteres de escape innecesarios
 
-### `normalizarTexto(texto: String): Option[String]`
-- Elimina espacios en blanco al inicio y final
-- Reduce múltiples espacios a uno solo
-- Retorna `None` para cadenas vacías
+### 3. Normalización de Texto
 
-### `limpiarCrew(crews: List[Crew]): List[Crew]`
-- Aplica normalización a todos los campos
-- Elimina duplicados exactos
+La función `normalizarTexto`:
+- Elimina espacios múltiples
+- Trimea espacios al inicio y final
+- Convierte strings vacíos en `None`
 
-### `parseCSVLine(line: String): Array[String]`
-- Parsea líneas CSV respetando campos entrecomillados
-- Usa punto y coma como separador
+### 4. Deduplicación
 
-## Salida del Programa
-El programa genera un informe completo que incluye:
+La función `limpiarCrew` elimina registros duplicados después de normalizar todos los campos de texto.
 
-1. **Resumen de procesamiento**: Total de registros procesados
-2. **Campos con valores null**: Conteo por cada campo
-3. **Muestra de registros**: Primeros 5 registros normalizados
-4. **Estadísticas por departamento**: Top 10 departamentos más comunes
-5. **Estadísticas por trabajo**: Top 10 trabajos más comunes
-6. **JSON limpio**: Muestra de 3 registros en formato JSON
+## Estadísticas Generadas
 
-## Requisitos
-- Scala 2.12+
-- Biblioteca Circe (`io.circe`)
-- Archivo CSV con columna "crew" que contenga datos JSON
+El programa genera reportes completos sobre:
 
-## Uso
-1. Colocar el archivo CSV en `src/main/resources/data/`
-2. Asegurar que el CSV tenga una columna llamada "crew"
-3. Ejecutar el objeto `LeerCrewCSV`
+### Conteo de Valores Null
+- Cuenta cuántos registros tienen valores null en cada campo
+- Útil para análisis de calidad de datos
 
-## Ejemplo de Datos de Entrada
-La columna "crew" debe contener datos en formato similar a JSON:
-```json
-[
-  {"name": "John Doe", "department": "Production", "job": "Producer", "profile_path": "/path.jpg"},
-  {"name": "Jane Smith", "department": "Directing", "job": "Director", "profile_path": null}
-]
+### Distribución por Género
+Muestra la cantidad de miembros del equipo por género:
+- 0: No especificado
+- 1: Femenino
+- 2: Masculino
+
+### Top 10 Departamentos
+Lista los departamentos más comunes en producción cinematográfica (ej: Production, Sound, Camera).
+
+### Top 10 Trabajos
+Muestra los roles más frecuentes (ej: Producer, Director, Editor).
+
+## Formato de Salida
+
+### Resumen de Procesamiento
+```
+==========================================================
+RESUMEN DE PROCESAMIENTO CON CIRCE
+==========================================================
+Total de registros Crew procesados: XXXXX
+
+Campos con valores null:
+  - Credit IDs null: XXX
+  - Nombres null: XXX
+  ...
 ```
 
-## Notas
-- El programa maneja datos faltantes convirtiéndolos a `null` en JSON
-- Preserva la estructura original mientras normaliza el contenido
-- Es robusto ante formatos JSON no estándar (comillas simples, valores Python)
+### JSON Limpio
+El programa exporta una muestra de registros en formato JSON usando Circe para verificar la correcta serialización.
 
+## Manejo de Errores
+
+- Verifica la existencia de la columna "crew"
+- Captura excepciones durante el parseo JSON
+- Maneja líneas malformadas devolviendo listas vacías
+- Usa `Option` para campos que pueden ser null
+
+## Requisitos
+
+### Dependencias (build.sbt)
+```scala
+libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core" % "0.14.x",
+  "io.circe" %% "circe-generic" % "0.14.x",
+  "io.circe" %% "circe-parser" % "0.14.x"
+)
+```
+
+## Ejecución
+
+```bash
+sbt run
+```
+
+## Casos de Uso
+
+Este procesador es útil para:
+- Análisis de diversidad en equipos de producción cinematográfica
+- Estudios sobre roles y departamentos en la industria del cine
+- Limpieza y normalización de datasets de películas
+- Generación de reportes estadísticos sobre crews de producción
+
+## Características Técnicas Destacadas
+
+- **Parseo robusto**: Maneja CSVs con campos complejos y JSON embebido
+- **Inmutabilidad**: Uso de case classes y transformaciones funcionales
+- **Type-safety**: Uso extensivo de `Option` para valores opcionales
+- **Formato legible**: Salida formateada con estadísticas claras y organizadas
 
 # Utilizando Circe Todos los datos
 
