@@ -181,138 +181,97 @@ Para cada variable numérica se calcula:
 ---
 # Crew Reader CSV - Procesador de Datos de Películas con CIRCE
 
-## Descripción
+Aquí tienes una explicación detallada del código estructurada en formato **README.md**, resaltando los puntos específicos que solicitaste y proporcionando la justificación de su correcto funcionamiento.
 
-Este proyecto en Scala procesa archivos CSV que contienen información sobre el equipo técnico (crew) de películas. Lee datos almacenados en formato JSON dentro de una columna del CSV, los parsea, limpia y genera estadísticas detalladas sobre el equipo de producción.
+---
 
-## Tecnologías Utilizadas
+# README: Procesador de Limpieza de Datos "Crew"
 
-- **Scala**: Lenguaje de programación principal
-- **Circe**: Librería para parseo y manipulación de JSON
-- **scala.io.Source**: Para lectura de archivos
+## Descripción General
 
-## Estructura de Datos
+Este script en **Scala** está diseñado para realizar un proceso **ETL (Extract, Transform, Load)** sobre un archivo CSV de películas. Su objetivo principal es extraer una columna compleja (`crew`) que contiene datos anidados en formato de texto (similar a diccionarios de Python), limpiarlos, convertirlos a JSON válido y generar un nuevo CSV estandarizado.
 
-### Case Class `Crew`
+---
 
-Representa a un miembro del equipo técnico con los siguientes campos:
+## 🛠️ Componentes Clave del Código
 
-```scala
-case class Crew(
-  credit_id: Option[String],      // ID único del crédito
-  department: Option[String],      // Departamento (ej: "Directing", "Camera")
-  gender: Option[Int],             // Género (0: No especificado, 1: Femenino, 2: Masculino)
-  id: Option[Int],                 // ID del miembro del equipo
-  job: Option[String],             // Puesto de trabajo específico
-  name: Option[String],            // Nombre completo
-  profile_path: Option[String]     // Ruta al perfil (puede ser null)
-)
-```
+### 1. El Parseo del CSV (`// Decodificador personalizado...`)
 
-## Funcionalidades Principales
+Esta es una de las partes más críticas. Los archivos CSV complejos a menudo fallan con un simple `split(";")` porque los datos dentro de las celdas (como el JSON de `crew`) pueden contener el separador (`;`) o comillas (`"`).
 
-### 1. Lectura y Parseo del CSV
+El código implementa una **Máquina de Estados Finitos** dentro de la función `parseCSVLine`:
 
-El programa lee el archivo CSV ubicado en `src/main/resources/data/pi-movies-complete-2026-01-08 (1).csv` y:
-- Identifica la columna "crew"
-- Parsea líneas CSV respetando campos entre comillas que contienen el separador (`;`)
-- Maneja correctamente campos con JSON embebido
+* **¿Qué hace?**: Recorre la línea carácter por carácter usando `foldLeft`.
+* **Lógica de "Estados"**:
+* Mantiene un registro de si está **dentro o fuera de comillas** (`inQuotes`).
+* Si encuentra un `;` y **NO** está entre comillas, lo trata como un separador de columna.
+* Si encuentra un `;` y **SÍ** está entre comillas (por ejemplo, dentro del JSON del crew), lo trata como texto normal y no rompe la fila.
 
-### 2. Limpieza de Datos JSON
 
-La función `cleanCrewJson` normaliza el formato JSON:
-- Reemplaza comillas simples por dobles
-- Convierte valores Python (`None`, `True`, `False`) a JSON válido
-- Elimina caracteres de escape innecesarios
+* **Importancia**: Esto garantiza que la estructura de columnas no se desplace, lo cual es el error más común al leer CSVs "sucios".
 
-### 3. Normalización de Texto
+### 2. El Procesamiento de Filas (`// Procesar cada fila...`)
 
-La función `normalizarTexto`:
-- Elimina espacios múltiples
-- Trimea espacios al inicio y final
-- Convierte strings vacíos en `None`
+Este bloque (`val filasLimpias = ...`) es el corazón de la transformación.
 
-### 4. Deduplicación
+* **Mantenimiento de Estructura**: Itera sobre `lines.tail` (todas las filas menos la cabecera).
+* **Extracción Segura**: Localiza dinámicamente el índice de la columna `crew` (`parts(crewIndex)`). Esto significa que si el orden de las columnas cambia en el futuro, el código seguirá funcionando siempre que la cabecera se llame "crew".
+* **Limpieza de "Python a JSON"**: Los datos originales parecen venir de un volcado de Python (`None`, `'comillas simples'`, `True`), lo cual no es JSON válido. La función `cleanCrewJson` hace reemplazos de strings (Regex) para convertir `None` -> `null`, `'` -> `"`, etc., permitiendo que la librería **Circe** pueda entenderlo.
+* **Manejo de Errores**: Usa un bloque `try/catch`. Si una fila específica está corrupta, devuelve una lista vacía (`List.empty`) en lugar de detener todo el programa.
 
-La función `limpiarCrew` elimina registros duplicados después de normalizar todos los campos de texto.
+### 3. Limpieza de Datos (`cleanCrewJson` y `limpiarCrew`)
 
-## Estadísticas Generadas
+Una vez que el JSON es parseado a objetos `Crew`:
 
-El programa genera reportes completos sobre:
+* **Normalización**: Se eliminan espacios en blanco excesivos.
+* **Manejo de Nulos**: Se convierten cadenas vacías en `None` (u `Option` en Scala).
+* **Deduplicación**: Se usa `.distinct` para evitar tener al mismo miembro del equipo repetido en la misma película con los mismos datos.
 
-### Conteo de Valores Null
-- Cuenta cuántos registros tienen valores null en cada campo
-- Útil para análisis de calidad de datos
+---
 
-### Distribución por Género
-Muestra la cantidad de miembros del equipo por género:
-- 0: No especificado
-- 1: Femenino
-- 2: Masculino
+## ¿Cómo saber que el código funciona correctamente?
 
-### Top 10 Departamentos
-Lista los departamentos más comunes en producción cinematográfica (ej: Production, Sound, Camera).
+El script incluye una sección robusta de **auditoría y estadísticas** al final. Puedes confirmar que el código funciona verificando la salida en la consola (logs) basándote en los siguientes criterios:
 
-### Top 10 Trabajos
-Muestra los roles más frecuentes (ej: Producer, Director, Editor).
+### 1. Integridad de los Datos (Sanity Checks)
 
-## Formato de Salida
+El código imprime un resumen al final:
 
-### Resumen de Procesamiento
-```
-==========================================================
-RESUMEN DE PROCESAMIENTO CON CIRCE
-==========================================================
-Total de registros Crew procesados: XXXXX
+> `Total de filas procesadas: X`
 
-Campos con valores null:
-  - Credit IDs null: XXX
-  - Nombres null: XXX
-  ...
-```
+* **Prueba de éxito**: Si `Total de filas procesadas` es igual al número de líneas de tu archivo CSV original (menos 1 por la cabecera), significa que el parser personalizado (`parseCSVLine`) funcionó perfectamente y no perdió ni fusionó ninguna línea.
 
-### JSON Limpio
-El programa exporta una muestra de registros en formato JSON usando Circe para verificar la correcta serialización.
+### 2. Tasa de Conversión
 
-## Manejo de Errores
+> `Filas con crew: X` vs `Total de filas`
 
-- Verifica la existencia de la columna "crew"
-- Captura excepciones durante el parseo JSON
-- Maneja líneas malformadas devolviendo listas vacías
-- Usa `Option` para campos que pueden ser null
+* **Prueba de éxito**: Si el número de filas con crew es alto (cercano al total), significa que la función `cleanCrewJson` (que convierte Python-string a JSON) está haciendo su trabajo correctamente. Si vieras `0` o un número muy bajo, indicaría que la limpieza de texto falló y Circe no pudo decodificar nada.
 
-## Requisitos
+### 3. Distribución Lógica (Business Logic Validation)
 
-### Dependencias (build.sbt)
-```scala
-libraryDependencies ++= Seq(
-  "io.circe" %% "circe-core" % "0.14.x",
-  "io.circe" %% "circe-generic" % "0.14.x",
-  "io.circe" %% "circe-parser" % "0.14.x"
-)
-```
+El código imprime estadísticas de **Género**, **Departamento** y **Trabajo**:
 
-## Ejecución
+* **Prueba de éxito**: Si ves categorías reconocibles (ej. "Directing", "Camera", "Writing" en departamentos) y una distribución de géneros (1, 2, 0), confirma que los datos se han mapeado a los campos correctos de la `case class Crew`.
 
-```bash
-sbt run
-```
+### 4. Muestra Visual
 
-## Casos de Uso
+> `EJEMPLO DE FILAS LIMPIAS`
 
-Este procesador es útil para:
-- Análisis de diversidad en equipos de producción cinematográfica
-- Estudios sobre roles y departamentos en la industria del cine
-- Limpieza y normalización de datasets de películas
-- Generación de reportes estadísticos sobre crews de producción
+* **Prueba de éxito**: El script imprime las primeras 3 filas procesadas. Si al leer la consola ves una estructura JSON limpia, legible y con dobles comillas en lugar de la basura original, el código ha tenido éxito.
 
-## Características Técnicas Destacadas
+---
 
-- **Parseo robusto**: Maneja CSVs con campos complejos y JSON embebido
-- **Inmutabilidad**: Uso de case classes y transformaciones funcionales
-- **Type-safety**: Uso extensivo de `Option` para valores opcionales
-- **Formato legible**: Salida formateada con estadísticas claras y organizadas
+## Resumen Técnico
 
+| Característica | Implementación | Propósito |
+| --- | --- | --- |
+| **Parsing CSV** | `foldLeft` + `StringBuilder` | Manejar `;` dentro de comillas sin romper columnas. |
+| **Parsing JSON** | `io.circe` | Convertir strings a objetos tipados (`List[Crew]`). |
+| **Sanitización** | Regex (`replaceAll`) | Transformar sintaxis Python (`None`, `'`) a JSON estándar. |
+| **Output** | `PrintWriter` | Escribir un CSV válido escapando caracteres especiales. |
+
+
+---
 # Utilizando Circe Todos los datos
 
 ##  Descripción del Proyecto de limpieza con Circe
