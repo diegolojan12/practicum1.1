@@ -181,12 +181,6 @@ Para cada variable numérica se calcula:
 ---
 # Crew Reader CSV - Procesador de Datos de Películas con CIRCE
 
-Aquí tienes una explicación detallada del código estructurada en formato **README.md**, resaltando los puntos específicos que solicitaste y proporcionando la justificación de su correcto funcionamiento.
-
----
-
-# README: Procesador de Limpieza de Datos "Crew"
-
 ## Descripción General
 
 Este script en **Scala** está diseñado para realizar un proceso **ETL (Extract, Transform, Load)** sobre un archivo CSV de películas. Su objetivo principal es extraer una columna compleja (`crew`) que contiene datos anidados en formato de texto (similar a diccionarios de Python), limpiarlos, convertirlos a JSON válido y generar un nuevo CSV estandarizado.
