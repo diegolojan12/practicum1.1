@@ -187,7 +187,7 @@ Este script en **Scala** está diseñado para realizar un proceso **ETL (Extract
 
 ---
 
-## 🛠️ Componentes Clave del Código
+## Componentes Clave del Código
 
 ### 1. El Parseo del CSV (`// Decodificador personalizado...`)
 
